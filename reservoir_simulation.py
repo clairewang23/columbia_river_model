@@ -10,6 +10,7 @@ outflow_data.rename(columns={'Lower Monumental (unit:cfs)': 'Lower Monumental ou
 outflow_data.rename(columns={'Little Goose (unit:cfs)': 'Little Goose outflow (cfs)'}, inplace=True)
 outflow_data.rename(columns={'Lower Granite (unit:cfs)': 'Lower Granite outflow (cfs)'}, inplace=True)
 outflow_data['date'] = pd.to_datetime(outflow_data['date'])
+precip_data = pd.read_csv('NOAAprecipitation_data_LEWISTON_AIRPORT_ID.csv')
 
 # simulate reservoirs
 x = 0
@@ -18,16 +19,43 @@ res_info = pd.DataFrame({'Names':['Ice Harbor','Lower Monumental','Little Goose'
                          'Number of turbines':[6,6,6,6],
                          'Generation capacity (kW)':[603000,810000,903000,810000],
                          'Average tailwater elevation (m)':[x,x,x,x],
-                         'Maximum pooling elevation (m)':[x,x,646.5,x]
+                         'Maximum pooling elevation (m)':[x,x,646.5,x],
+                         'Fish Passage Rate (%)':[.965,.965,.9775,x],
+                         'Watershed Area (acres)':[103_352,95_277,83_074,111_602]
                          })
 
 eta = 0.8 # efficiency of turbines, assumed value
 rho = 998 # density of water, 1000 kg/m^3
 g = 9.81 # gravitational acceleration, 9.81 m/s^2
 
+#fish passage function
+def simulate_fish_passage(df, keep):
+    #df is dataframe containing Dam Name and inflow outflow data?
+    if keep == 1:
+        df['fish passage (%)'] = 1
+
 # generate inflow from previous reservoir outflow/gage data, and added runoff data
 # PLACEHOLDER
+
+#hard coded S and Ia values based of land use and CN
+S = 0.0484 #meter
+I = 0.00968 #meter
+
+def calc_runoff(name,df,res_info):
+    #takes in precip data as P and dam name dataframe as df
+    #returns runoff volume
+    P = df['precip_data'] #RALABEL THIS PLEASE
+    Area = res_info.loc['Watershed Area (acres)'] #not sure if this is the right way to reference this
+    print(Area)
+    if P <= I:
+        Q = 0
+    elif P > I:
+        Q = (P-I)**2/(P-I+S)
+    Q_v = Q * Area
+    df['Runoff volume (m^3)'] = Q
+
 def simulate_inflow(data):
+    #will take streamflow data and add runoff for Lower Granite Dam
     return data*1.1
 
 # simulate reservoir
