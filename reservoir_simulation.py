@@ -9,7 +9,21 @@ outflow_data.rename(columns={'Lower Monumental (unit:cfs)': 'Lower Monumental ou
 outflow_data.rename(columns={'Little Goose (unit:cfs)': 'Little Goose outflow (cfs)'}, inplace=True)
 outflow_data.rename(columns={'Lower Granite (unit:cfs)': 'Lower Granite outflow (cfs)'}, inplace=True)
 outflow_data['date'] = pd.to_datetime(outflow_data['date'])
+
+#process precip data
 precip_data = pd.read_csv('NOAAprecipitation_data_LEWISTON_AIRPORT_ID.csv')
+precip_data = precip_data.drop(['STATION', 'NAME', 'LATITUDE', 'LONGITUDE', 'ELEVATION', 'SNWD', 'SNOW'], axis=1)
+precip_data.rename(columns={'PRCP':'rainfall (in)', 'DATE':'datetime'}, inplace=True)
+precip_data['datetime'] = pd.to_datetime(precip_data['datetime'], format='%Y-%m-%d')
+end = precip_data['datetime'].max()
+start = end - pd.DateOffset(years=10)
+precip_10yr = precip_data[(precip_data['datetime'] >= start) & 
+                          (precip_data['datetime'] <= end)]
+#check and remove nans
+# print(precip_10yr['rainfall (in)'].isna().any()) #returns True
+precip_10yr.loc[:, 'rainfall (in)'] = precip_10yr['rainfall (in)'].fillna(0) #replaces nan with 0
+# print(precip_10yr['rainfall (in)'].isna().any()) #returns False
+
 
 # simulate reservoirs
 x = 0
@@ -19,9 +33,16 @@ res_info = pd.DataFrame({'Names':['Ice Harbor','Lower Monumental','Little Goose'
                          'Generation capacity (kW)':[603000,810000,903000,810000],
                          'Average tailwater elevation (m)':[x,x,x,x],
                          'Maximum pooling elevation (m)':[x,x,646.5,x],
-                         'Watershed Area (acres)':[103_352,95_277,83_074,111_602]
+                         'Watershed Area (m^2)':[103_352*4047 ,95_277*4047 ,83_074*4047 ,111_602*4047 ]
                          })
-fish_passage = {'Names':['Ice Harbor','Lower Monumental','Little Goose','Lower Granite'], 'Fish Passage Rate (%)':[.965,.965,.9775,x]}
+res_info = res_info.set_index('Names')
+#test prints
+# print(res_info)
+# print(res_info.loc['Ice_Harbor','Watershed Area (m^2)'])
+
+fish_passage = pd.DataFrame({'Names':['Ice Harbor','Lower Monumental','Little Goose','Lower Granite'], 'Fish Passage Rate (%)':[.965,.965,.9775,x]})
+fish_passage = fish_passage.set_index('Names')
+
 eta = 0.8 # efficiency of turbines, assumed value
 rho = 998 # density of water, 1000 kg/m^3
 g = 9.81 # gravitational acceleration, 9.81 m/s^2
@@ -30,32 +51,32 @@ g = 9.81 # gravitational acceleration, 9.81 m/s^2
 def simulate_fish_passage(dam_name, keep):
     #df is dataframe containing Dam Name and inflow outflow data?
     if keep == 1:
-        fish_passage[dam_name] = 1 #check if this is wrong'
+        fish_passage.loc[dam_name,'Fish Passage Rate (%)'] = 1 #check if this is wrong
     return None
 
 # generate inflow from previous reservoir outflow/gage data, and added runoff data
-# PLACEHOLDER
 
-#hard coded S and Ia values based of land use and CN
-S = 0.0484 #meter
-I = 0.00968 #meter
+#hard coded S and Ia values based of land use and CN (see exceo sheet)
+# S = 0.0484 #meter
+# I = 0.00968 #meter
+S = 1.904761905 #inches
+I = 0.380952381 #inches
 
-def calc_runoff(dam_name,df,res_info):
+def calc_runoff(dam_name):
     #takes in precip data as P and dam name dataframe as df
-    #returns runoff volume
-    P = df['precip_data'] #RALABEL THIS PLEASE
-    Area = res_info.loc['Watershed Area (acres)'] #not sure if this is the right way to reference this
-    print(Area)
-    if P <= I:
-        Q = 0
-    elif P > I:
-        Q = (P-I)**2/(P-I+S)
-    Q_v = Q * Area
-    df['Runoff volume (m^3)'] = Q
+    #returns runoff volume over 10 year period
+    Area = res_info.loc[dam_name,'Watershed Area (m^2)']
+    P = precip_10yr['rainfall (in)']
+    Q = np.where(P <= I, 0, (P-I)**2 / (P - I + S))
+    # print(Q[1005])
+    Q = Q*0.0254 #convert to meters
+    Q_v = Q * Area 
+    return np.sum(Q_v)
 
 def simulate_inflow(data):
-    #will take streamflow data and add runoff for Lower Granite Dam
-    return data*1.1
+    #will take streamflow data and add runoff for Lower Granite Dam summed over 10 years
+
+    return data #this part doesnt work yet + np.sum(calc_runoff('Lower Granite'))
 
 # simulate reservoir
 def simulate_reservoir(df, initial_storage, keep, resID):
@@ -87,8 +108,19 @@ def simulate_system(df):
     return None
 
 # simulate Little Goose reservoir
-# little_goose = pd.DataFrame(outflow_data['Little Goose outflow (cfs)'])
-# little_goose['inflow (cfs)'] = simulate_inflow(little_goose['Little Goose outflow (cfs)'])
-# little_goose.rename(columns={'Little Goose outflow (cfs)':'outflow (cfs)'}, inplace=True)
-# display(little_goose)
+little_goose = pd.DataFrame(outflow_data['Little Goose outflow (cfs)'])
+little_goose['inflow (cfs)'] = simulate_inflow(little_goose['Little Goose outflow (cfs)']) #this will change when we figure out the inflow data
+little_goose.rename(columns={'Little Goose outflow (cfs)':'outflow (cfs)'}, inplace=True)
+# print(little_goose)
+
 # simulate_reservoir(little_goose,100000,0,'Little Goose')
+
+
+#test calc_runoff function
+print(calc_runoff('Ice Harbor'))
+print(calc_runoff('Lower Monumental'))
+
+#test fish passage
+print(fish_passage)
+simulate_fish_passage('Ice Harbor', 1)
+print(fish_passage)
