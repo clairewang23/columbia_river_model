@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 # import and visualize data
 outflow_data = pd.read_csv('4200 Modified Average Daily Streamflows.csv')
@@ -20,19 +19,19 @@ res_info = pd.DataFrame({'Names':['Ice Harbor','Lower Monumental','Little Goose'
                          'Generation capacity (kW)':[603000,810000,903000,810000],
                          'Average tailwater elevation (m)':[x,x,x,x],
                          'Maximum pooling elevation (m)':[x,x,646.5,x],
-                         'Fish Passage Rate (%)':[.965,.965,.9775,x],
                          'Watershed Area (acres)':[103_352,95_277,83_074,111_602]
                          })
-
+fish_passage = {'Names':['Ice Harbor','Lower Monumental','Little Goose','Lower Granite'], 'Fish Passage Rate (%)':[.965,.965,.9775,x]}
 eta = 0.8 # efficiency of turbines, assumed value
 rho = 998 # density of water, 1000 kg/m^3
 g = 9.81 # gravitational acceleration, 9.81 m/s^2
 
 #fish passage function
-def simulate_fish_passage(df, keep):
+def simulate_fish_passage(dam_name, keep):
     #df is dataframe containing Dam Name and inflow outflow data?
     if keep == 1:
-        df['fish passage (%)'] = 1
+        fish_passage[dam_name] = 1 #check if this is wrong'
+    return None
 
 # generate inflow from previous reservoir outflow/gage data, and added runoff data
 # PLACEHOLDER
@@ -41,7 +40,7 @@ def simulate_fish_passage(df, keep):
 S = 0.0484 #meter
 I = 0.00968 #meter
 
-def calc_runoff(name,df,res_info):
+def calc_runoff(dam_name,df,res_info):
     #takes in precip data as P and dam name dataframe as df
     #returns runoff volume
     P = df['precip_data'] #RALABEL THIS PLEASE
@@ -86,3 +85,10 @@ def simulate_reservoir(df, initial_storage, keep, resID):
 def simulate_system(df):
     # - df is dataframe with Ice Harbor, Lower Monumental, Little Goose, and Lower Granite
     return None
+
+# simulate Little Goose reservoir
+# little_goose = pd.DataFrame(outflow_data['Little Goose outflow (cfs)'])
+# little_goose['inflow (cfs)'] = simulate_inflow(little_goose['Little Goose outflow (cfs)'])
+# little_goose.rename(columns={'Little Goose outflow (cfs)':'outflow (cfs)'}, inplace=True)
+# display(little_goose)
+# simulate_reservoir(little_goose,100000,0,'Little Goose')
