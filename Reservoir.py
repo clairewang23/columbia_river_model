@@ -34,11 +34,11 @@ class Reservoir:
         Q = np.where(P <= I, 0, (P-I)**2 / (P - I + S))
         Q = Q*0.0254 #convert to meters
         Q_v = Q * Area 
-        return np.sum(Q_v)
+        return Q_v
     
     def simulate_inflow(self, precip_data, inflow_data):
-        runoff = self.calc_runoff(precip_data)
-        upstream_flow = inflow_data
+        runoff = self.calc_runoff(precip_data) # gives volume per day (m^3/d)
+        upstream_flow = inflow_data*86400*0.0283 # gives volume per day (m^3/d)
         return runoff + upstream_flow
     
     def simulate_storage(self, initial_storage, keep, inflow, outflow):
@@ -54,4 +54,10 @@ class Reservoir:
             storage[i] = max(min(storage[i-1] + inflow[i] - outflow[i], max_storage), 0)
         
         return storage
+    
+    def simulate_head(self, storage):
+        return None
+    
+    def simulate_hydropower(self, head):
+        return None
     
