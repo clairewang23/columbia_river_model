@@ -69,3 +69,5 @@ class Reservoir:
         energy = (P/1000) * 24 # Watts to kW multiplied by hours in a day to get kWh=
         return energy
     
+    # you can see the latest changes :)
+    
