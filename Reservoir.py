@@ -39,6 +39,7 @@ class Reservoir:
     def simulate_inflow(self, precip_data, inflow_data):
         runoff = self.calc_runoff(precip_data) # gives volume per day (m^3/d)
         upstream_flow = inflow_data*86400*0.0283 # gives volume per day (m^3/d)
+
         return runoff + upstream_flow
     
     def simulate_storage(self, initial_storage, keep, inflow, outflow):
