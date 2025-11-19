@@ -58,6 +58,14 @@ class Reservoir:
     def simulate_head(self, storage):
         return None
     
-    def simulate_hydropower(self, head):
-        return None
+    def simulate_hydropower(self, head, flow, keep):
+        P = rho * g * head * eta * self.num_turb * flow
+
+        if keep == 0: # no dam
+            P = 0
+        # else: yes dam
+        P = min((P/1000), self.capacity) # maximum power output is less than rated capacity of turbine
+        P = max(P, 0) # non-negativity constraint
+        energy = (P/1000) * 24 # Watts to kW multiplied by hours in a day to get kWh=
+        return energy
     
