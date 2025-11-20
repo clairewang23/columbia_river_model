@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 
 # CONSTANTS: hard coded S and Ia values based off land use and CN (see Excel sheet)
-S = 0.3 #inches
-I = 0.05 #inches
+S = 1.9 #inches
+I = 0.05*S #inches
 
 # CONSTANTS: to calculate hydropower
 eta = 0.8 # efficiency of turbines, assumed value
