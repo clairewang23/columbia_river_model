@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
 
-# CONSTANTS: hard coded S and Ia values based of land use and CN (see Excel sheet)
-S = 1.904761905 #inches
-I = 0.380952381 #inches
+# CONSTANTS: hard coded S and Ia values based off land use and CN (see Excel sheet)
+S = 0.3 #inches
+I = 0.05 #inches
 
 # CONSTANTS: to calculate hydropower
 eta = 0.8 # efficiency of turbines, assumed value
@@ -57,7 +57,9 @@ class Reservoir:
         return storage
     
     def simulate_head(self, storage):
-        return None
+        water_height = storage/self.SA + self.bottom_elev
+        head = water_height - self.tail_elev
+        return head
     
     def simulate_hydropower(self, head, flow, keep):
         P = rho * g * head * eta * self.num_turb * flow
@@ -65,10 +67,8 @@ class Reservoir:
         if keep == 0: # no dam
             P = 0
         # else: yes dam
-        P = min((P/1000), self.capacity) # maximum power output is less than rated capacity of turbine
-        P = max(P, 0) # non-negativity constraint
+        P = np.maximum(P, 0) # non-negativity constraint
+        P = np.minimum((P/1000), self.capacity) # maximum power output is less than rated capacity of turbine
         energy = (P/1000) * 24 # Watts to kW multiplied by hours in a day to get kWh=
         return energy
-    
-    # you can see the latest changes :)
     
