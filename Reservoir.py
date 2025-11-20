@@ -12,7 +12,7 @@ g = 9.81 # gravitational acceleration, 9.81 m/s^2
 
 class Reservoir:
 
-    def __init__(self, SA, num_turb, capacity, tail_elev, pool_elev, bottom_elev, fish_pass, area):
+    def __init__(self, SA, num_turb, capacity, tail_elev, pool_elev, bottom_elev, fish_pass, area, pc):
         self.SA = SA # reservoir surface area (sq m)
         self.num_turb = num_turb # number of turbines at dam
         self.capacity = capacity # generation capacity (kW)
@@ -21,6 +21,7 @@ class Reservoir:
         self.bottom_elev = bottom_elev*0.3046 # reservoir bottom elevation (ft -> m)
         self.fish_pass = fish_pass # fish passage rate
         self.area = area # watershed area (sq m)
+        self.pc = pc # powerhouse capacity (cfs)
         self.max_storage = SA * (pool_elev - bottom_elev)
     
     def simulate_fish_passage(self, keep):
@@ -59,16 +60,17 @@ class Reservoir:
     def simulate_head(self, storage):
         water_height = storage/self.SA + self.bottom_elev
         head = water_height - self.tail_elev
-        return head
+        return head*0.3048
     
     def simulate_hydropower(self, head, flow, keep):
-        P = rho * g * head * eta * self.num_turb * flow
+        inflow = np.minimum(flow, self.pc)
+        P = rho * g * head * eta * self.num_turb * inflow
 
         if keep == 0: # no dam
             P = 0
         # else: yes dam
         P = np.maximum(P, 0) # non-negativity constraint
-        P = np.minimum((P/1000), self.capacity) # maximum power output is less than rated capacity of turbine
+        #P = np.minimum((P/1000), self.capacity) # maximum power output is less than rated capacity of turbine
         energy = (P/1000) * 24 # Watts to kW multiplied by hours in a day to get kWh=
         return energy
     
