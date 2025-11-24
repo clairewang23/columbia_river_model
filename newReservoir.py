@@ -56,18 +56,26 @@ class Reservoir:
         energy = (P/1000) * 24 # Watts to kW multiplied by hours in a day to get kWh=
         return energy
     
-    def simulate(self, keep, datetime, outflow, dstorage):
+    def simulate(self, keep, initial_storage, datetime, outflow, dstorage):
         '''
         Inputs:
         - keep: if dam is kept, has value of 1. If dam is removed, has value of 0. 
         - datetime: array of datetime values for each datapoint
         - outflow: array of reservoir outflow values (cfs)
-        - dstorage: array of reservoir change in storage values ()
+        - dstorage: array of reservoir change in storage values (cfs)
         Return Dataframe containing reservoir simulation data.
-        Dataframe includes columns: datetime, outflow, inflow, storage, hydropower
+        Dataframe includes columns: datetime, outflow, dstorage, storage, hydropower
         '''
-        simulated_reservoir = pd.DataFrame({'Datetime':datetime,'Outflow (cfs)':outflow})
+        simulated_reservoir = pd.DataFrame({'Datetime':datetime,'Outflow (cfs)':outflow,'Dstorage (cfs)':dstorage})
+
+        # make calculations
         fish_passage = self.simulate_fish_passage(keep)
-        head = self.simulate_head(dstorage)
-        hydro = self.simulate_hydropower()
+        storage = self.simulate_storage(initial_storage, keep, dstorage, outflow)
+        head = self.simulate_head(storage)
+        hydro = self.simulate_hydropower(head, outflow, keep)
+        
+        # put results in dataframe
+        simulated_reservoir['storage'] = storage
+        simulated_reservoir['head'] = head
+        simulated_reservoir['hydro'] = hydro
         return simulated_reservoir, fish_passage
