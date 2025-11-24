@@ -39,7 +39,7 @@ class Reservoir:
             #possibly add ability to adjust storage according to some equation here
         return storage
 
-    def simulate_outflow(prev_out, tributary, dstorage):
+    def simulate_outflow(self, prev_out, tributary, dstorage):
         return prev_out+tributary-dstorage
 
     def simulate_head(self, storage):
@@ -65,7 +65,7 @@ class Reservoir:
         avg_annual_hydro = annual_hydro.mean()
         return avg_annual_hydro
     
-    def simulate(self, keep, initial_storage, prev_outflow, tributary, datetime, dstorage):
+    def simulate(self, keep, initial_storage, datetime, prev_out, tributary, dstorage):
         '''
         Inputs:
         - keep: if dam is kept, has value of 1. If dam is removed, has value of 0. 
@@ -78,10 +78,10 @@ class Reservoir:
 
         # make calculations
         fish_passage = self.simulate_fish_passage(keep)
-        outflow = self.simulate_outflow(prev_outflow, tributary, dstorage)
+        outflow = self.simulate_outflow(prev_out, tributary, dstorage)
         storage = self.simulate_storage(keep, dstorage, initial_storage)
         head = self.simulate_head(storage)
         hydro = self.simulate_hydropower(head, outflow, keep)
         avg_hydro = self.calc_avg_annual_hydro(datetime, hydro)
         
-        return avg_hydro, fish_passage
+        return outflow, avg_hydro, fish_passage
