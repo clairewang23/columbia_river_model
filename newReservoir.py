@@ -1,11 +1,6 @@
 import pandas as pd
 import numpy as np
 
-# CONSTANTS: S and Ia values based off land use and CN (see Excel sheet)
-CN = 84
-S = 1000/CN - 10 #inches
-I = 0.05*S #inches
-
 # CONSTANTS: to calculate hydropower
 eta = 0.8 # efficiency of turbines, assumed value
 rho = 998 # density of water, 1000 kg/m^3
@@ -61,7 +56,7 @@ class Reservoir:
         energy = (P/1000) * 24 # Watts to kW multiplied by hours in a day to get kWh=
         return energy
     
-    def simulate(self, keep, datetime, outflow, precip):
+    def simulate(self, keep, datetime, outflow, storage):
         '''
         Inputs:
         - keep: if dam is kept, has value of 1. If dam is removed, has value of 0. 
@@ -71,6 +66,8 @@ class Reservoir:
         Return Dataframe containing reservoir simulation data.
         Dataframe includes columns: datetime, outflow, inflow, storage, hydropower
         '''
-        simulated_reservoir = pd.DataFrame({'Datetime':datetime,'Outflow (cfs)':outflow, 'Precip (in)':precip})
+        simulated_reservoir = pd.DataFrame({'Datetime':datetime,'Outflow (cfs)':outflow})
         fish_passage = self.simulate_fish_passage(keep)
+        head = self.simulate_head(storage)
+        hydro = self.simulate_hydropower()
         return simulated_reservoir, fish_passage
