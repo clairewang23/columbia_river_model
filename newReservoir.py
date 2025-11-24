@@ -55,6 +55,11 @@ class Reservoir:
         P = np.minimum((P/1000), self.capacity) # maximum power output is less than rated capacity of turbine
         energy = (P/1000) * 24 # Watts to kW multiplied by hours in a day to get kWh=
         return energy
+
+    def calc_avg_annual_hydro(self, date, hydro):
+        data = pd.DataFrame({'date':date, 'hydro':hydro})
+        avg_annual_hydro = data.groupby(data['date'].dt.year)['hydro'].mean()
+        return avg_annual_hydro
     
     def simulate(self, keep, initial_storage, datetime, outflow, dstorage):
         '''
@@ -66,16 +71,17 @@ class Reservoir:
         Return Dataframe containing reservoir simulation data.
         Dataframe includes columns: datetime, outflow, dstorage, storage, hydropower
         '''
-        simulated_reservoir = pd.DataFrame({'Datetime':datetime,'Outflow (cfs)':outflow,'Dstorage (cfs)':dstorage})
+        # simulated_reservoir = pd.DataFrame({'Datetime':datetime,'Outflow (cfs)':outflow,'Dstorage (cfs)':dstorage})
 
         # make calculations
         fish_passage = self.simulate_fish_passage(keep)
         storage = self.simulate_storage(initial_storage, keep, dstorage, outflow)
         head = self.simulate_head(storage)
         hydro = self.simulate_hydropower(head, outflow, keep)
+        avg_hydro = self.calc_avg_annual_hydro(datetime, hydro)
         
         # put results in dataframe
-        simulated_reservoir['storage'] = storage
-        simulated_reservoir['head'] = head
-        simulated_reservoir['hydro'] = hydro
-        return simulated_reservoir, fish_passage
+        # simulated_reservoir['storage'] = storage
+        # simulated_reservoir['head'] = head
+        # simulated_reservoir['hydro'] = hydro
+        return avg_hydro, fish_passage
