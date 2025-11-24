@@ -58,7 +58,8 @@ class Reservoir:
 
     def calc_avg_annual_hydro(self, date, hydro):
         data = pd.DataFrame({'date':date, 'hydro':hydro})
-        avg_annual_hydro = data.groupby(data['date'].dt.year)['hydro'].mean()
+        annual_hydro = data.groupby(data['date'].dt.year)['hydro'].sum()
+        avg_annual_hydro = annual_hydro.mean()
         return avg_annual_hydro
     
     def simulate(self, keep, initial_storage, datetime, outflow, dstorage):
@@ -71,7 +72,6 @@ class Reservoir:
         Return Dataframe containing reservoir simulation data.
         Dataframe includes columns: datetime, outflow, dstorage, storage, hydropower
         '''
-        # simulated_reservoir = pd.DataFrame({'Datetime':datetime,'Outflow (cfs)':outflow,'Dstorage (cfs)':dstorage})
 
         # make calculations
         fish_passage = self.simulate_fish_passage(keep)
@@ -80,8 +80,4 @@ class Reservoir:
         hydro = self.simulate_hydropower(head, outflow, keep)
         avg_hydro = self.calc_avg_annual_hydro(datetime, hydro)
         
-        # put results in dataframe
-        # simulated_reservoir['storage'] = storage
-        # simulated_reservoir['head'] = head
-        # simulated_reservoir['hydro'] = hydro
         return avg_hydro, fish_passage
