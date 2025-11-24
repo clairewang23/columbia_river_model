@@ -18,7 +18,7 @@ class Reservoir:
         self.fish_pass = fish_pass # fish passage rate
         self.area = area # watershed area (sq m)
         self.pc = pc # powerhouse capacity (cfs)
-        self.max_storage = SA * (pool_elev - bottom_elev)
+        self.max_storage = self.SA * (self.pool_elev - self.bottom_elev) #m^3
     
     def simulate_fish_passage(self, keep):
         if keep == 0: # remove dam
@@ -26,7 +26,7 @@ class Reservoir:
         return self.fish_pass
     
     def simulate_storage(self, keep, dstorage, initial_storage):
-        max_storage = self.max_storage
+        max_storage = self.max_storage #m^3
         storage = np.zeros(len(dstorage))
         if keep == 0: # no dam
             return storage
@@ -34,29 +34,37 @@ class Reservoir:
         else: #yes dam
             storage[0] = initial_storage
             for i in range(1,len(storage)):
-                storage[i] = max(min(storage[i-1] + dstorage[i]*86400*0.0283, max_storage), 0)
+                storage[i] = max(min(storage[i-1] + dstorage[i]*86400*0.0283, max_storage), 0) #units are m^3
 
             #possibly add ability to adjust storage according to some equation here
-        return storage
+        return storage #m^3
 
     def simulate_outflow(self, prev_out, tributary, dstorage):
-        return prev_out+tributary-dstorage
+        return prev_out + (tributary-dstorage)*2447 #m^3/day
 
     def simulate_head(self, storage):
-        water_height = storage/self.SA + self.bottom_elev
-        head = water_height - self.tail_elev
-        return head*0.3048
+        #storage given from sim_storage which outputs m^3, SA and elev in meters^2 and m
+        water_height = storage/self.SA + self.bottom_elev # m
+        head = water_height - self.tail_elev #m
+        return head #m
     
     def simulate_hydropower(self, head, flow, keep):
-        inflow = np.minimum(flow, self.pc)
-        P = rho * g * head * eta * self.num_turb * inflow*0.0283
-
+        #flow from function: m^3/day
+        #pc given in cfs
+        inflow = np.minimum(flow, self.pc * .0283) #m^3/day
         if keep == 0: # no dam
             P = 0
-        # else: yes dam
-        P = np.maximum(P, 0) # non-negativity constraint
-        P = np.minimum((P/1000), self.capacity) # maximum power output is less than rated capacity of turbine
-        energy = (P/1000) * 24 # Watts to kW multiplied by hours in a day to get kWh=
+        elif keep == 1: #yes dam
+            #rho: kg/m^3
+            #g: m/s^2
+            #head: meters
+            #inflow: CALCULATED FROM FUNCTION m^3/day (convert to m^3/s)
+            #(kg*m*m*m^3)/(m^3*s^2*s) = (kg*m^2)/(s^3)
+            P = rho * g * head * eta * self.num_turb * inflow/86400 #Watts
+            P = np.maximum(P, 0) # non-negativity constraint
+            P = np.minimum(P/1000, self.capacity) # maximum power output is less than rated capacity of turbine, (converted to kW)
+        energy = P * 24 # kW multiplied by hours in a day to get kWh=
+
         return energy
 
     def calc_avg_annual_hydro(self, date, hydro):
@@ -78,10 +86,10 @@ class Reservoir:
 
         # make calculations
         fish_passage = self.simulate_fish_passage(keep)
-        outflow = self.simulate_outflow(prev_out, tributary, dstorage)
-        storage = self.simulate_storage(keep, dstorage, initial_storage)
-        head = self.simulate_head(storage)
-        hydro = self.simulate_hydropower(head, outflow, keep)
-        avg_hydro = self.calc_avg_annual_hydro(datetime, hydro)
+        outflow = self.simulate_outflow(prev_out, tributary, dstorage) #inputs m^3/day,cfs; outputs m^3/day
+        storage = self.simulate_storage(keep, dstorage, initial_storage) #inputs cfs, outputs m^3
+        head = self.simulate_head(storage) #inputs m^3, outputs m
+        hydro = self.simulate_hydropower(head, outflow, keep) #inputs m and m^3/day, outputs kWh
+        avg_hydro = self.calc_avg_annual_hydro(datetime, hydro) #inputs kWh, outputs kWh/year
         
         return outflow, avg_hydro, fish_passage
