@@ -63,7 +63,7 @@ class Reservoir:
             #head: meters
             #inflow: given from BPA streamflows: cfs (convert to m^3/s)
             #(kg*m*m*m^3)/(m^3*s^2*s) = (kg*m^2)/(s^3)
-            P = rho * g * head * eta * self.num_turb * inflow*0.0283
+            P = rho * g * head * eta * inflow*0.0283
             P = np.maximum(P, 0) # non-negativity constraint
             P = np.minimum(P/1000, self.capacity) # maximum power output is less than rated capacity of turbine (convert to kW)
         energy = P * 24 # kW multiplied by hours in a day to get kWh=

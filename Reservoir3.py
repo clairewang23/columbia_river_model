@@ -40,7 +40,7 @@ class Reservoir:
         return storage #m^3
 
     def simulate_outflow(self, prev_out, tributary, dstorage):
-        return prev_out + (tributary-dstorage)*2447 #m^3/day
+        return prev_out + (tributary-dstorage)*86400*.0283 #m^3/day
 
     def simulate_head(self, storage):
         #storage given from sim_storage which outputs m^3, SA and elev in meters^2 and m
@@ -51,7 +51,7 @@ class Reservoir:
     def simulate_hydropower(self, head, flow, keep):
         #flow from function: m^3/day
         #pc given in cfs
-        inflow = np.minimum(flow, self.pc * .0283) #m^3/day
+        inflow = np.minimum(flow, self.pc * 86400*.0283) #m^3/day
         if keep == 0: # no dam
             P = 0
         elif keep == 1: #yes dam
@@ -60,10 +60,10 @@ class Reservoir:
             #head: meters
             #inflow: CALCULATED FROM FUNCTION m^3/day (convert to m^3/s)
             #(kg*m*m*m^3)/(m^3*s^2*s) = (kg*m^2)/(s^3)
-            P = rho * g * head * eta * self.num_turb * inflow/86400 #Watts
+            P = rho * g * head * eta * inflow/86400 #Watts
             P = np.maximum(P, 0) # non-negativity constraint
             P = np.minimum(P/1000, self.capacity) # maximum power output is less than rated capacity of turbine, (converted to kW)
-        energy = P * 24 # kW multiplied by hours in a day to get kWh=
+        energy = P * 24 # kW multiplied by hours in a day to get kWh
 
         return energy
 
