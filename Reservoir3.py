@@ -8,7 +8,7 @@ g = 9.81 # gravitational acceleration, 9.81 m/s^2
 
 class Reservoir:
 
-    def __init__(self, SA, num_turb, capacity, tail_elev, pool_elev, bottom_elev, fish_pass, area, pc):
+    def __init__(self, SA, num_turb, capacity, tail_elev, pool_elev, bottom_elev, fish_pass, area, pc, spillway_cap):
         self.SA = SA # reservoir surface area (sq m)
         self.num_turb = num_turb # number of turbines at dam
         self.capacity = capacity # generation capacity (kW)
@@ -18,6 +18,7 @@ class Reservoir:
         self.fish_pass = fish_pass # fish passage rate
         self.area = area # watershed area (sq m)
         self.pc = pc # powerhouse capacity (cfs)
+        self.spillway_cap= spillway_cap # spillway capacity (cfs)
         self.max_storage = self.SA * (self.pool_elev - self.bottom_elev) #m^3
     
     def simulate_fish_passage(self, keep):
@@ -40,7 +41,9 @@ class Reservoir:
         return storage #m^3
 
     def simulate_outflow(self, prev_out, tributary, dstorage):
-        return prev_out + (tributary-dstorage)*86400*.0283 #m^3/day
+        out = prev_out + (tributary-dstorage)*86400*.0283 #m^3/day
+        out = out.clip(lower=0)
+        return out
 
     def simulate_head(self, storage):
         #storage given from sim_storage which outputs m^3, SA and elev in meters^2 and m
