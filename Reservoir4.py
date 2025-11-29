@@ -150,7 +150,10 @@ class Reservoir:
             # Compute regulated release using the provided parameters. Clip to ensure no negative storage.
             r[i + 1] = min(self.regulated_release(param, h[i]), s[i]/delta + n[i])
             # Update storage based on the mass balance. Do not exceed max storage
-            s[i + 1] = min(s[i] + (n[i + 1] - r[i + 1]) * delta, self.max_storage)
+            raw_storage = s[i] + (n[i + 1] - r[i + 1]) * delta
+            s[i + 1] = min(raw_storage, self.max_storage)
+            if raw_storage > self.max_storage:
+                r[i + 1] = r[i + 1] + (raw_storage - self.max_storage) / delta # Recalculate release if storage was capped
             # Compute new lake level
             h[i + 1] = s[i + 1] / S + h_bottom
 
