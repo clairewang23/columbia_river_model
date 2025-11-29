@@ -71,9 +71,83 @@ class Reservoir:
             h[i + 1] = s[i + 1] / S + h_bottom
         
         return s, h, r
+    
+    def regulated_release(self, param, h):
+        # Full implementation of regulated_release
+        """
+        Calculate regulated lake release based on parameters and lake level.
+        
+        Parameters:
+        - param (dict): Lake model parameters with 'nat' and 'reg' keys
+        - h (float or array-like): Lake level
+        
+        Returns:
+        - float or array-like: Regulated lake release
+        """
+        # Natural storage-discharge relationship
+        beta = param['beta']
+        alfa = param['alfa']
+        h0 = self.tail_elev
+        
+        # Regulated storage-discharge relationship
+        mef = param['mef']
+        h1 = param['h1']
+        m = param['m']
+        
+        # Water-saving and flood control
+        L = mef + m * (h - h1) # save water for future??
+        r = np.maximum(L, mef)  # Release
+        # if h<h1: release mef. if h>h1, release L. Do not exceed natural flow ever
+        
+        # Constraints
+        r = np.where(h <= h0, 0, r)  # No flow possible
+        natural_flow = np.where(h > h0, beta * (h - h0) ** alfa, 0)
+        r = np.minimum(natural_flow, r)  # Do not exceed natural flow ever
+        r = np.maximum(r, 0)  # Release cannot be negative
+        
+        return r
+    
+    def simulation_reg_lake(self, param, h_in, n):
+        # Full implementation of simulation_reg_lake
+        """
+        Simulate regulated lake level, storage, and release trajectories.
 
-    def simulate_outflow(self, prev_out, tributary, dstorage):
-        return prev_out + (tributary-dstorage)*86400*.0283 #m^3/day
+        Parameters:
+        - param (dict): Parameters with lake surface and model settings
+        - h_in (float): Initial lake level
+        - n (array-like): Net inflows trajectory
+
+        Returns:
+        - tuple: (lake storage trajectory, lake level trajectory, release trajectory)
+        """
+        # Lake model parameters
+        S = self.SA  # Lake surface area [m^2]
+        h_bottom = self.bottom_elev
+
+        # Integration step and simulation horizon
+        H = len(n) - 1              # Simulation horizon [days]
+        delta = 60 * 60 * 24        # Integration step [s/day]
+
+        # Initialize variables for trajectories
+        h = np.full(len(n), np.nan)  # Lake level [m]
+        s = np.full(len(n), np.nan)  # Lake storage [m^3]
+        r = np.full(len(n), np.nan)  # Lake outflows [m^3/s]
+
+        # Initial conditions
+        h[0] = h_in
+        s[0] = S * (h_in - h_bottom)  # Initial storage
+
+        # Simulation loop
+        for i in range(H):
+            # Compute regulated release using the provided parameters. Clip to ensure no negative storage.
+            r[i + 1] = min(self.regulated_release(param, h[i]), s[i]/delta + n[i])
+            # Update storage based on the mass balance
+            s[i + 1] = s[i] + (n[i + 1] - r[i + 1]) * delta
+            # Compute new lake level
+            h[i + 1] = s[i + 1] / S + h_bottom
+
+        return s, h, r
+
 
     def simulate_head(self, storage):
         #storage given from sim_storage which outputs m^3, SA and elev in meters^2 and m
