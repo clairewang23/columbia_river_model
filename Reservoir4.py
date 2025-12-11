@@ -8,13 +8,12 @@ g = 9.81 # gravitational acceleration, 9.81 m/s^2
 
 class Reservoir:
 
-    def __init__(self, SA, capacity, tail_elev, pool_elev, bottom_elev, fish_pass, pc, spillway_cap, alfa, beta):
+    def __init__(self, SA, capacity, tail_elev, pool_elev, bottom_elev, pc, spillway_cap, alfa, beta):
         self.SA = SA # reservoir surface area (sq m)
         self.capacity = capacity # generation capacity (kW)
         self.tail_elev = tail_elev*0.3046 # tailwater elevation (ft -> m)
         self.pool_elev = pool_elev*0.3046 # reservoir maximum pooling elevation (ft -> m)
         self.bottom_elev = bottom_elev*0.3046 # reservoir bottom elevation (ft -> m)
-        self.fish_pass = fish_pass # fish passage rate
         self.pc = pc # powerhouse capacity (cfs)
         self.spillway_cap = spillway_cap*0.3046**3 # spillway capacity (cfs -> m^3/s)
         self.max_storage = self.SA * (self.pool_elev - self.bottom_elev) #m^3
@@ -24,11 +23,6 @@ class Reservoir:
     def set_params(self, alfa, beta):
         self.alfa = alfa
         self.beta = beta
-    
-    def simulate_fish_passage(self, keep):
-        if keep == 0: # remove dam
-            return 1
-        return self.fish_pass
     
     def simulation_nat_lake(self, keep, h_in, n):
         """
@@ -83,7 +77,7 @@ class Reservoir:
         
         Parameters:
         - param (dict): Lake model parameters with 'nat' and 'reg' keys
-        - h (float or array-like): Lake level
+        - h (float or array-like): Lake level (m)
         
         Returns:
         - float or array-like: Regulated lake release
@@ -97,6 +91,9 @@ class Reservoir:
         mef = param['mef']
         h1 = param['h1']
         m = param['m']
+
+        # Constraint based on maximum reservoir pool height
+        h_max = self.pool_elev
         
         # Water-saving and flood control
         L = mef + m * (h - h1) # save water for future??
@@ -105,7 +102,10 @@ class Reservoir:
         
         # Constraints
         r = np.where(h <= h0, 0, r)  # No flow possible
-        natural_flow = np.where(h > h0, beta * (h - h0) ** alfa, 0)
+        # Clip the base to avoid raising negative numbers to fractional powers
+        base = np.maximum(h - h0, 0)
+        natural_flow = beta * (base ** alfa)
+        #r = np.where(h >= h_max, natural_flow, r) # use natural flow if height exceeds pool elevation
         r = np.minimum(natural_flow, r)  # Do not exceed natural flow ever
         r = np.maximum(r, 0)  # Release cannot be negative
         
@@ -168,6 +168,7 @@ class Reservoir:
         # flow from function: m^3/s
         # pc given in cfs
         inflow = np.minimum(flow, self.pc * .0283) #m^3/s
+        head = np.maximum(head, 0)
 
         if keep == 0: # no dam
             P = 0
